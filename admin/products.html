@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商品管理 - 夏雨店铺系统</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.1/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <script src="../assets/tinymce/tinymce.min.js"></script>
+    <style>
+        /* ================== 全局样式 ================== */
+        body { 
+            background-color: #f4f7f6; 
+            margin: 0; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
+        }
+        
+        /* 修复 TinyMCE 在 Bootstrap Modal 中的层级问题 */
+        .tox-tinymce-aux { z-index: 1060 !important; }
+
+        /* ================== TinyMCE 移动端自动换行适配 ================== */
+        /* 强制工具栏和菜单栏换行，而不是隐藏或滚动 */
+        .tox .tox-toolbar__primary, 
+        .tox .tox-menubar {
+            flex-wrap: wrap !important;
+            white-space: normal !important;
+        }
+        /* 调整移动端工具栏按钮的间距，防止过于拥挤 */
+        .tox .tox-tbtn {
+            margin: 2px !important;
+        }
+
+        /* 布局主容器 */
+        .admin-container { display: flex; min-height: 100vh; width: 100%; }
+
+        /* ================== 移动端专属顶栏 ================== */
+        .admin-mobile-header {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 50px;
+            background-color: #ffffff; border-bottom: 1px solid #ddd; padding: 0 15px;
+            z-index: 1001; justify-content: space-between; align-items: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .admin-mobile-header .mobile-logo a { font-size: 18px; font-weight: bold; color: #333; text-decoration: none; }
+        #mobile-menu-toggle { background: none; border: none; font-size: 20px; color: #555; padding: 5px; }
+
+        /* ================== 遮罩层 ================== */
+        .admin-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4); z-index: 1001; opacity: 0; transition: opacity 0.3s ease;
+        }
+        .admin-overlay.is-visible { display: block; opacity: 1; }
+        
+        /* ================== 左侧侧边栏 ================== */
+        .admin-sidebar {
+            width: 240px; background-color: #2c3e50; color: #ecf0f1;
+            position: fixed; height: 100%; left: 0; top: 0; z-index: 100; 
+            box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+            display: flex; flex-direction: column;
+            transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .sidebar-header {
+            padding: 20px; text-align: center; font-size: 20px; font-weight: bold;
+            border-bottom: 1px solid #34495e; background-color: #2c3e50; flex-shrink: 0;
+        }
+        .sidebar-header a { color: #ecf0f1; text-decoration: none; }
+        .sidebar-menu-container { flex: 1; overflow-y: auto; }
+        .admin-sidebar ul { list-style: none; padding: 0; margin: 0; }
+        .admin-sidebar ul li a {
+            display: block; color: #bdc3c7; padding: 15px 20px;
+            text-decoration: none; border-left: 3px solid transparent;
+            transition: all 0.3s; font-size: 14px;
+        }
+        .admin-sidebar ul li a:hover { background-color: #34495e; color: #ffffff; }
+        .admin-sidebar ul li a.active { background-color: #e74c3c; color: #ffffff; border-left-color: #c0392b; }
+        .admin-sidebar ul li a i { margin-right: 10px; width: 20px; text-align: center; }
+        .sidebar-footer {
+            padding: 15px; text-align: center; font-size: 12px; color: #7f8c8d;
+            border-top: 1px solid #34495e; background-color: #2c3e50; flex-shrink: 0;
+        }
+
+        /* ================== 右侧内容区域 ================== */
+        .admin-content {
+            margin-left: 240px; width: calc(100% - 240px); padding: 20px;
+            transition: margin-left 0.3s; font-size: 14px;
+        }
+        .admin-content h3 { font-size: 18px; font-weight: bold; margin-bottom: 20px; }
+        .logout-btn { color: #e74c3c !important; }
+
+        /* ================== Modal (弹窗) 风格优化 ================== */
+        .modal-content {
+            border: none; box-shadow: 0 5px 15px rgba(0,0,0,0.15); font-size: 14px;
+        }
+        .modal-header {
+            border-bottom: 1px solid #eee; padding: 15px 20px; background-color: #f8f9fa;
+            border-top-left-radius: 4px; border-top-right-radius: 4px;
+        }
+        .modal-title { font-size: 16px; font-weight: bold; color: #333; }
+        .modal-body { padding: 20px; }
+        .modal-footer {
+            border-top: 1px solid #eee; padding: 12px 20px; background-color: #fff;
+        }
+        /* 表单控件优化 */
+        .form-label { font-weight: 500; margin-bottom: 6px; color: #333; }
+        .form-control, .form-select {
+            font-size: 14px; padding: 8px 10px; border-color: #ddd; border-radius: 4px;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #409EFF; box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
+        }
+        .btn-primary { background-color: #409EFF; border-color: #409EFF; }
+        .btn-primary:hover { background-color: #66b1ff; border-color: #66b1ff; }
+
+
+        /* ================== 商品管理专属样式 ================== */
+        .variant-row { background-color: #f8f9fa; border: 1px solid #e9ecef; }
+        .form-label-sm { font-size: .75rem; font-weight: 500; color: #555; margin-bottom: 0.1rem; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .form-control-sm { padding: 0.2rem 0.3rem; font-size: 0.85rem; }
+        .form-select-sm { padding: 0.2rem 1.5rem 0.2rem 0.3rem; font-size: 0.85rem; }
+
+        .variant-fields-container {
+            display: flex; flex-wrap: nowrap; gap: 5px; align-items: flex-end; overflow-x: auto; padding-bottom: 10px;
+        }
+        /* 美化滚动条 */
+        .variant-fields-container::-webkit-scrollbar { height: 6px; }
+        .variant-fields-container::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+
+        .variant-field { flex-shrink: 0; min-width: 60px; }
+        .v-name { width: 120px; }
+        .v-color-wrap { width: 60px; }
+        .v-mode-wrap { width: 65px;}
+        .v-image_url { width: 120px;}
+        .v-selection_label { width: 100px; }
+        .v-price-wrap { width: 70px;}
+        .v-stock-wrap { width: 70px; }
+        .v-markup-wrap { width: 60px; }
+        .v-sales-wrap { width: 60px; }
+        .v-wholesale_config { width: 100px;}
+
+        /* ================== 响应式适配 ================== */
+        @media (max-width: 800px) {
+            .admin-mobile-header { display: flex; }
+            .admin-sidebar { left: -240px; z-index: 1002; }
+            .admin-sidebar.is-visible { left: 0; }
+            .admin-content { margin-left: 0; width: 100%; padding-top: 70px; }
+        }
+    </style>
+</head>
+<body>
+
+<script src="../config.js"></script>
+
+<div class="admin-mobile-header">
+    <div class="mobile-logo"><a href="#">夏雨店铺系统</a></div>
+    <button id="mobile-menu-toggle"><i class="fas fa-bars"></i></button>
+</div>
+<div class="admin-overlay"></div>
+
+<div class="admin-container">
+    <div class="admin-sidebar" id="sidebar">
+        <div class="sidebar-header"><a href="/admin/dashboard.html">XYRJ Faka</a></div>
+        <div class="sidebar-menu-container">
+            <ul>
+                <li><a href="/admin/dashboard.html"><i class="fas fa-tachometer-alt"></i> 仪表盘</a></li>
+                <li><a href="/admin/categories.html"><i class="fas fa-folder"></i> 商品分类</a></li>
+                <li><a href="/admin/products.html" class="active"><i class="fas fa-box"></i> 商品管理</a></li>
+                <li><a href="/admin/cards.html"><i class="fas fa-ticket-alt"></i> 卡密管理</a></li>
+                <li><a href="/admin/orders.html"><i class="fas fa-shopping-cart"></i> 订单管理</a></li>
+                <li><a href="/admin/payments.html"><i class="fas fa-credit-card"></i> 支付设置</a></li>
+                <li><a href="/admin/article_categories.html"><i class="fas fa-tags"></i> 文章分类</a></li>
+                <li><a href="/admin/articles.html"><i class="fas fa-newspaper"></i> 文章管理</a></li>
+                <li><a href="/admin/settings.html"><i class="fas fa-cog"></i> 系统设置</a></li>
+                <li><a href="/admin/images.html"><i class="fas fa-images"></i> 图片管理</a></li>
+                <li><a href="javascript:logout()" class="logout-btn"><i class="fas fa-sign-out-alt"></i> 退出登录</a></li>
+            </ul>
+        </div>
+        <div class="sidebar-footer">夏雨店铺系统 Version <span id="app-version">...</span></div>
+    </div>
+
+    <div class="admin-content">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3>商品管理</h3>
+            <div>
+                <button class="btn btn-danger btn-sm me-2" id="batch-delete-btn" onclick="batchDelete()" style="display: none;">
+                    <i class="fas fa-trash"></i> 批量删除 <span id="selected-count" class="badge bg-light text-dark rounded-pill ms-1">0</span>
+                </button>
+                <button class="btn btn-primary btn-sm" onclick="openModal()">
+                    <i class="fas fa-plus"></i> 新建商品
+                </button>
+            </div>
+        </div>
+        
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover align-middle mb-0" style="font-size: 14px;">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 40px; text-align: center;"><input class="form-check-input" type="checkbox" id="select-all"></th>
+                                <th style="width: 60px;">ID</th>
+                                <th>商品 (分类)</th>
+                                <th style="width: 80px; text-align: center;">规格数</th>
+                                <th style="width: 80px; text-align: center;">排序</th>
+                                <th style="width: 80px; text-align: center;">状态</th>
+                                <th style="width: 110px; text-align: center;" class="text-nowrap">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="p-list"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editModal" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl modal-fullscreen-lg-down">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">编辑商品</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="p-form">
+                    <input type="hidden" id="p-id">
+                    <div class="row mb-3">
+                        <div class="col-md-5"><label class="form-label">商品名称</label><input type="text" class="form-control" id="p-name" required></div>
+                        <div class="col-md-4"><label class="form-label">商品分类</label><select id="p-category" class="form-select"></select></div>
+                        <div class="col-md-3"><label class="form-label">排序权重</label><input type="number" class="form-control" id="p-sort" value="0"></div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">商品主图 URL (默认显示)</label>
+                        <input type="text" class="form-control" id="p-image" placeholder="https://example.com/main.jpg">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">商品标签 (格式: b1#边框色 b2#背景色 标签名#文字色, ...)</label>
+                        <input type="text" class="form-control" id="p-tags" placeholder="例如: b1#ff0000 b2#ffecec 热销#ff0000, b1#0000ff b2#e0e0ff 推荐#0000ff">
+                        <div class="form-text text-muted small" style="font-size: 12px;">
+                            说明: 多个标签用<b>英文逗号</b>分隔。每个标签内用<b>空格</b>分隔属性。<br>
+                            b1=边框颜色, b2=背景颜色, 第三项=标签名#文字颜色。
+                        </div>
+                    </div>
+
+                    <div class="mb-3"><label class="form-label">商品描述</label><textarea class="form-control" id="p-desc" rows="3"></textarea></div>
+                    
+                    <div class="mb-3 form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="p-active" checked>
+                        <label class="form-check-label" for="p-active">上架销售</label>
+                    </div>
+                </form>
+                
+                <hr class="my-4">
+                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                    <h5 class="mb-0" style="font-size: 15px; font-weight: bold;">规格列表 (Variants)</h5>
+                    <div class="d-flex gap-2">
+                        <input type="text" class="form-control form-control-sm" id="variant-search" placeholder="搜索规格名称..." oninput="filterVariants()" style="width: 150px;">
+                        <button class="btn btn-sm btn-outline-success text-nowrap" onclick="clearSearchAndAdd()"><i class="fas fa-plus"></i> 添加规格</button>
+                    </div>
+                </div>
+                <div id="v-list" class="mt-3"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary btn-sm" onclick="saveProduct()">保存商品</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="addCardModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">快速加卡</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="add-card-form">
+                    <input type="hidden" id="ac-variant-id">
+                    <div class="mb-3">
+                        <label class="form-label">正在为规格：<span id="ac-variant-name" class="fw-bold text-primary"></span> 加卡</label>
+                        <textarea class="form-control" id="ac-content" rows="10" placeholder="请输入卡密内容，一行一个" required></textarea>
+                        <div class="form-text">支持批量添加，请确保每行一条卡密。</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary btn-sm" onclick="submitAddCard()">确认添加</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // 权限与配置
+    const TOKEN = localStorage.getItem('ADMIN_TOKEN');
+    if(!TOKEN) window.location.href = '/admin/index.html';
+    if (window.SITE_CONFIG && window.SITE_CONFIG.version) {
+        document.getElementById('app-version').innerText = window.SITE_CONFIG.version;
+    } else {
+        document.getElementById('app-version').innerText = '1.0.0';
+    }
+    function logout() { if(confirm('确定要退出登录吗？')) { localStorage.removeItem('ADMIN_TOKEN'); window.location.href = '/admin/index.html'; } }
+    async function api(path, options = {}) {
+        options.headers = { ...options.headers, 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' };
+        try { const res = await fetch('/api/admin/' + path, options); if(res.status === 401) { logout(); return {}; } return res.json(); } catch(e) { console.error(e); return {}; }
+    }
+
+    // 页面逻辑
+    let allProducts = [];
+    let allCategories = [];
+    const modal = new bootstrap.Modal(document.getElementById('editModal'));
+
+    async function loadData() {
+        const tbody = document.getElementById('p-list');
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center">加载中...</td></tr>';
+        [allProducts, allCategories] = await Promise.all([ api('products/list'), api('categories/list') ]);
+        if (!allProducts || allProducts.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center">暂无商品</td></tr>';
+            return;
+        }
+        tbody.innerHTML = allProducts.map(p => {
+            const category = allCategories.find(c => c.id === p.category_id) || { name: '未知' };
+            return `
+            <tr>
+                <td style="text-align: center;"><input class="form-check-input p-check" type="checkbox" value="${p.id}" onchange="updateBatchBtn()"></td>
+                <td>${p.id}</td>
+                <td><div class="fw-bold text-truncate" style="max-width: 200px;">${p.name}</div><small class="text-muted">${category.name}</small></td>
+                <td class="text-center"><span class="badge bg-info text-dark">${p.variants.length}</span></td>
+                <td class="text-center">${p.sort}</td>
+                <td class="text-center"><span class="badge bg-${p.active ? 'success' : 'secondary'}">${p.active ? '上架' : '下架'}</span></td>
+                <td class="text-center">
+                    <button class="btn btn-sm btn-outline-primary" onclick="openModal(${p.id})" title="编辑"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-sm btn-outline-danger ms-1" onclick="deleteProduct(${p.id})" title="删除"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>
+        `}).join('');
+        document.getElementById('select-all').checked = false; updateBatchBtn();
+    }
+
+    // 批量删除逻辑
+    document.getElementById('select-all').addEventListener('change', function() {
+        const isChecked = this.checked;
+        document.querySelectorAll('.p-check').forEach(cb => { cb.checked = isChecked; });
+        updateBatchBtn();
+    });
+    function updateBatchBtn() {
+        const selectedCount = document.querySelectorAll('.p-check:checked').length;
+        const btn = document.getElementById('batch-delete-btn');
+        document.getElementById('selected-count').innerText = selectedCount;
+        btn.style.display = selectedCount > 0 ? 'inline-block' : 'none';
+    }
+    async function batchDelete() {
+        const ids = Array.from(document.querySelectorAll('.p-check:checked')).map(cb => parseInt(cb.value));
+        if (ids.length === 0) return;
+        if (!confirm(`确定要删除选中的 ${ids.length} 个商品吗？\n警告：删除商品将同时删除其下所有规格和卡密！`)) return;
+        const btn = document.getElementById('batch-delete-btn');
+        btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 删除中...';
+        try {
+            await Promise.all(ids.map(id => api('product/delete', { method: 'POST', body: JSON.stringify({ id: id }) })));
+            alert('批量删除已完成'); loadData();
+        } catch (error) { alert('部分删除可能失败'); loadData(); } finally { btn.disabled = false; }
+    }
+    
+    // 单个删除
+    async function deleteProduct(id) {
+        if (!confirm('确定要删除此商品吗？\n警告：删除商品将同时删除其下所有规格和卡密！')) return;
+        const res = await api('product/delete', { method: 'POST', body: JSON.stringify({ id }) });
+        if (res.success) { loadData(); } else { alert('删除失败: ' + (res.error || '未知错误')); }
+    }
+
+    function openModal(id = null) {
+        const p = allProducts.find(x => x.id === id) || { name:'', description:'', sort:0, active:1, category_id: 1, variants:[{}], tags: '' };
+        document.getElementById('p-id').value = p.id || '';
+        document.getElementById('p-name').value = p.name;
+        document.getElementById('p-sort').value = p.sort;
+        document.getElementById('p-image').value = p.image_url || '';
+        document.getElementById('p-tags').value = p.tags || '';
+        document.getElementById('p-active').checked = !!p.active;
+        
+        // --- 核心修改：设置编辑器内容 ---
+        const descContent = p.description || '';
+        document.getElementById('p-desc').value = descContent; // 设置原生 textarea 作为后备
+        if (tinymce.get('p-desc')) {
+            tinymce.get('p-desc').setContent(descContent);
+        }
+        // -----------------------------
+
+        document.getElementById('variant-search').value = '';
+
+        const catSelect = document.getElementById('p-category');
+        catSelect.innerHTML = allCategories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+        catSelect.value = p.category_id || (allCategories.length > 0 ? allCategories[0].id : '');
+        
+        document.getElementById('v-list').innerHTML = '';
+        (p.variants.length ? p.variants : [{}]).forEach(v => addVariantRow(v));
+        modal.show();
+    }
+
+    function filterVariants() {
+        const searchText = document.getElementById('variant-search').value.toLowerCase().trim();
+        const rows = document.querySelectorAll('#v-list .variant-row');
+        rows.forEach(row => {
+            const nameInput = row.querySelector('input.v-name');
+            const name = nameInput ? nameInput.value.toLowerCase() : '';
+            if (name.includes(searchText)) { row.style.display = ''; } else { row.style.display = 'none'; }
+        });
+    }
+
+    function clearSearchAndAdd() {
+        document.getElementById('variant-search').value = '';
+        filterVariants(); 
+        addVariantRow({});
+        const vList = document.getElementById('v-list');
+        setTimeout(() => { vList.scrollTop = vList.scrollHeight; }, 100);
+    }
+
+    function addVariantRow(v) {
+        const vList = document.getElementById('v-list');
+        const row = document.createElement('div');
+        row.className = 'variant-row rounded p-3 mb-3 position-relative shadow-sm';
+        let wholesaleString = '';
+        if (v.wholesale_config && Array.isArray(v.wholesale_config)) {
+            wholesaleString = v.wholesale_config.map(tier => `${tier.qty}=${tier.price}`).join(', ');
+        }
+        const autoDelivery = (v.auto_delivery !== undefined) ? v.auto_delivery : 1;
+        const isAuto = (autoDelivery == 1);
+
+        row.innerHTML = `
+            <input type="hidden" class="v-id" value="${v.id || ''}">
+            ${v.id ? `<button type="button" class="btn btn-sm btn-outline-info position-absolute top-0 end-0 m-2" style="margin-right: 5rem !important; z-index: 10;" title="快速加卡" onclick="quickAddCard(${v.id}, '${v.name}')"><i class="fas fa-plus-circle"></i></button>` : ''}
+            <button type="button" class="btn btn-sm btn-outline-success position-absolute top-0 end-0 m-2" style="margin-right: 2.5rem !important; z-index: 10;" title="保存所有更改" onclick="saveProduct()"><i class="fas fa-save"></i></button>
+            <button type="button" class="btn-close position-absolute top-0 end-0 m-2" aria-label="删除此规格" onclick="this.closest('.variant-row').remove()"></button>
+            <div class="variant-fields-container">
+                <div class="variant-field v-name"><label class="form-label-sm">规格名称</label><input type="text" class="form-control form-control-sm v-name" value="${v.name || ''}" placeholder="月卡"></div>
+                <div class="variant-field" style="width: 60px;"><label class="form-label-sm">排序</label><input type="number" class="form-control form-control-sm v-sort" value="${v.sort || 0}" placeholder="0"></div>
+                <div class="variant-field" style="width: 60px; text-align:center;"><label class="form-label-sm">状态</label><div class="form-check form-switch d-flex justify-content-center"><input class="form-check-input v-active" type="checkbox" ${v.active !== 0 ? 'checked' : ''}></div></div>
+                <div class="variant-field v-color-wrap"><label class="form-label-sm">颜色</label><input type="text" class="form-control form-control-sm v-color" value="${v.color || ''}" placeholder="#FFF"></div>
+                <div class="variant-field v-mode-wrap"><label class="form-label-sm">发货模式</label><select class="form-select form-select-sm v-auto_delivery" onchange="toggleStockInput(this)"><option value="1" ${isAuto ? 'selected' : ''}>自动</option><option value="0" ${!isAuto ? 'selected' : ''}>手动</option></select></div>
+                <div class="variant-field v-image_url"><label class="form-label-sm">图片链接</label><input type="url" class="form-control form-control-sm v-image_url" value="${v.image_url || ''}" placeholder="http://..."></div>
+                <div class="variant-field v-price-wrap"><label class="form-label-sm">售价</label><input type="number" step="0.01" class="form-control form-control-sm v-price" value="${v.price || ''}" placeholder="0.00"></div>
+                <div class="variant-field v-wholesale_config"><label class="form-label-sm">批发 (5=3)</label><input type="text" class="form-control form-control-sm v-wholesale_config" value="${wholesaleString}" placeholder="5=3"></div>
+                <div class="variant-field v-stock-wrap"><label class="form-label-sm">库存</label><input type="number" class="form-control form-control-sm v-stock" value="${v.stock || 0}" ${isAuto ? 'disabled readonly title="自动从卡密库计算"' : ''}></div>
+                <div class="variant-field v-selection_label"><label class="form-label-sm">自选标签</label><input type="text" class="form-control form-control-sm" name="v_selection_label" value="${v.selection_label || ''}" placeholder="自选卡密"></div>
+                <div class="variant-field v-markup-wrap"><label class="form-label-sm">加价</label><input type="number" step="0.01" class="form-control form-control-sm v-custom_markup" value="${v.custom_markup || 0}"></div>
+                <div class="variant-field v-sales-wrap"><label class="form-label-sm">销量</label><input type="text" class="form-control form-control-sm" value="${v.sales_count || 0}" disabled readonly></div>
+            </div>`;
+        vList.appendChild(row);
+    }
+    // 1. 初始化弹窗对象
+    const addCardModal = new bootstrap.Modal(document.getElementById('addCardModal'));
+    
+    // 2. 点击按钮唤起弹窗
+    function quickAddCard(id, name) {
+        document.getElementById('ac-variant-id').value = id;
+        document.getElementById('ac-variant-name').innerText = name;
+        document.getElementById('ac-content').value = ''; 
+        addCardModal.show();
+    }
+    
+    // 3. 提交添加请求
+    async function submitAddCard() {
+        const id = document.getElementById('ac-variant-id').value;
+        const content = document.getElementById('ac-content').value;
+        const btn = document.querySelector('#addCardModal .btn-primary');
+    
+        if (!content.trim()) return alert('请输入卡密内容');
+    
+        const originalText = btn.innerText;
+        btn.disabled = true;
+        btn.innerText = '正在添加...';
+    
+        try {
+            const res = await api('cards/import', { method: 'POST', body: JSON.stringify({ variant_id: id, content: content }) });
+            if (res.imported) {
+                alert(`成功添加 ${res.imported} 张卡密`);
+                addCardModal.hide();
+                loadData(); // 刷新数据以更新库存显示
+            } else {
+                alert('添加失败: ' + (res.error || '未知错误'));
+            }
+        } catch (e) {
+            alert('请求出错: ' + e.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerText = originalText;
+        }
+    }
+    function toggleStockInput(selectEl) {
+        const row = selectEl.closest('.variant-row'); const stockInput = row.querySelector('.v-stock');
+        if (selectEl.value == "1") { stockInput.disabled = true; stockInput.readOnly = true; stockInput.title = "自动从卡密库计算"; } 
+        else { stockInput.disabled = false; stockInput.readOnly = false; stockInput.title = ""; }
+    }
+    async function saveProduct() {
+        // --- 核心修改：获取编辑器内容 ---
+        let descContent = '';
+        if (tinymce.get('p-desc')) {
+            descContent = tinymce.get('p-desc').getContent();
+        } else {
+            descContent = document.getElementById('p-desc').value;
+        }
+        // ------------------------------
+
+        const data = {
+            id: document.getElementById('p-id').value || null,
+            name: document.getElementById('p-name').value,
+            description: descContent, // 使用获取到的富文本内容
+            sort: parseInt(document.getElementById('p-sort').value) || 0,
+            active: document.getElementById('p-active').checked ? 1 : 0,
+            category_id: document.getElementById('p-category').value,
+            image_url: document.getElementById('p-image').value,
+            tags: document.getElementById('p-tags').value,
+            variants: []
+        };
+        try {
+            document.querySelectorAll('#v-list .variant-row').forEach(row => {
+                const wholesaleInput = row.querySelector('input.v-wholesale_config');
+                const wholesaleValue = wholesaleInput ? wholesaleInput.value.trim() : '';
+                let wholesale_config = null;
+                if (wholesaleValue) {
+                    try { wholesale_config = wholesaleValue.split(',').map(p => p.trim()).filter(p => p.includes('=')).map(p => { const parts = p.split('='); return { qty: parseInt(parts[0]), price: parseFloat(parts[1]) }; }); if (wholesale_config.length === 0) wholesale_config = null; } catch (e) {}
+                }
+                const price = parseFloat(row.querySelector('.v-price').value);
+                const nameVal = row.querySelector('input.v-name').value || '默认规格';
+                if (isNaN(price) || price < 0) throw new Error(`规格 "${nameVal}" 售价错误`);
+                data.variants.push({
+                    id: row.querySelector('.v-id').value || null, name: nameVal, price: price, sort: parseInt(row.querySelector('.v-sort').value) || 0, active: row.querySelector('.v-active').checked ? 1 : 0, color: row.querySelector('.v-color').value || null, image_url: row.querySelector('input.v-image_url').value || null, selection_label: row.querySelector('[name="v_selection_label"]').value.trim() || null, custom_markup: parseFloat(row.querySelector('.v-custom_markup').value) || 0, wholesale_config: wholesale_config, auto_delivery: parseInt(row.querySelector('.v-auto_delivery').value), stock: parseInt(row.querySelector('.v-stock').value) || 0
+                });
+            });
+            if (data.variants.length === 0) throw new Error('至少添加一个规格');
+        } catch (e) { return alert('保存失败: ' + e.message); }
+        const res = await api('product/save', { method: 'POST', body: JSON.stringify(data) });
+        if (res.success) { modal.hide(); loadData(); } else { alert('保存失败: ' + (res.error || '未知错误')); }
+    }
+    // [新增] 简单的图片上传函数
+    async function uploadFile(file) {
+        const formData = new FormData();
+        formData.append('file', file);
+        // 注意：这里手动 fetch 避免通用 api() 函数强制 JSON 格式
+        const res = await fetch('/api/admin/gh/upload', { method: 'POST', headers: { 'Authorization': `Bearer ${TOKEN}` }, body: formData });
+        return await res.json();
+    }
+    
+    // [新增] 主图上传绑定
+    document.addEventListener('DOMContentLoaded', () => {
+        const imgInput = document.getElementById('p-image');
+        const btn = document.createElement('button');
+        btn.type = 'button'; btn.className = 'btn btn-outline-secondary'; btn.innerHTML = '<i class="fas fa-upload"></i>';
+        btn.onclick = () => {
+            const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*';
+            input.onchange = async e => {
+                if(!e.target.files[0]) return;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; btn.disabled = true;
+                const res = await uploadFile(e.target.files[0]);
+                if(res.location) { imgInput.value = res.location; } else { alert(res.error || '上传失败'); }
+                btn.innerHTML = '<i class="fas fa-upload"></i>'; btn.disabled = false;
+            };
+            input.click();
+        };
+        // 将上传按钮插入到输入框作为一个 Input Group
+        const wrapper = document.createElement('div'); wrapper.className = 'input-group';
+        imgInput.parentNode.insertBefore(wrapper, imgInput);
+        wrapper.appendChild(imgInput); wrapper.appendChild(btn);
+    });
+    loadData();
+
+    // 移动端菜单
+    const mobileBtn = document.getElementById('mobile-menu-toggle');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.querySelector('.admin-overlay');
+    function toggleMenu() {
+        sidebar.classList.toggle('is-visible');
+        overlay.classList.toggle('is-visible');
+        const icon = mobileBtn.querySelector('i');
+        icon.classList.toggle('fa-bars'); icon.classList.toggle('fa-times');
+    }
+    mobileBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleMenu(); });
+    overlay.addEventListener('click', toggleMenu);
+    document.querySelectorAll('.admin-sidebar a').forEach(link => { link.addEventListener('click', () => { if (window.innerWidth <= 800) toggleMenu(); }); });
+    document.addEventListener('focusin', (e) => {
+        if (e.target.closest(".tox-tinymce-aux, .moxman-window, .tam-assetmanager-root") !== null) {
+            e.stopImmediatePropagation();
+        }
+    });
+    // --- 初始化 TinyMCE ---
+    document.addEventListener("DOMContentLoaded", function () {
+    tinymce.init({
+        selector: '#p-desc',
+        language: 'zh_CN',
+        base_url: '/assets/tinymce',
+        suffix: '.min',
+        height: 500,
+        menubar: true,
+        plugins: 'lists link image charmap preview code searchreplace wordcount',
+        toolbar: 'undo redo blocks fontselect fontsizeselect bold italic underline strikethrough alignleft aligncenter alignright alignjustify bullist numlist lineheight forecolor backcolor link image code removeformat toggle-vertical-bar',
+        toolbar_mode: 'wrap',
+        mobile: {
+            theme: 'silver',
+            toolbar_mode: 'wrap'
+        },
+        branding: false,
+        promotion: false,
+        branding: false,
+        promotion: false,
+
+        // [新增] 图片上传处理逻辑
+        images_upload_handler: (blobInfo, progress) => new Promise((resolve, reject) => {
+            const formData = new FormData();
+            formData.append('file', blobInfo.blob(), blobInfo.filename());
+            fetch('/api/admin/gh/upload', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('ADMIN_TOKEN')}` },
+                body: formData
+            }).then(r => r.json()).then(res => {
+                if (res.location) resolve(res.location); else reject(res.error || '上传失败');
+            }).catch(e => reject(e));
+        }),
+        paste_data_images: true, // 允许粘贴图片
+
+        setup: function (editor) {
+            editor.on('change', function () {
+                editor.save();
+            });
+
+            // ⭐ 自定义竖条标题按钮
+            editor.ui.registry.addButton('toggle-vertical-bar', {
+                text: '竖条标题',
+                tooltip: '插入/移除左侧竖条样式（跟随文字颜色）',
+                onAction: function () {
+                    var selectedText = editor.selection.getContent();
+
+                    // ⭐ 检查是否有我们插入的 span
+                    var hasBar = selectedText.includes('data-vertical-bar="1"');
+
+                    if (hasBar) {
+                        // ⭐ 删除我们插入的竖条 span，不影响其他 span
+                        var cleaned = selectedText
+                            .replace(/<span[^>]*data-vertical-bar="1"[^>]*>/g, '')
+                            .replace(/<\/span>/g, '');
+
+                        editor.insertContent(cleaned);
+                    } else {
+                        // ⭐ 插入新的竖条 span
+                        var wrapped =
+                            '<span data-vertical-bar="1" ' +
+                            'style="border-left: 4px solid; padding-left: 6px; vertical-align: middle; display: inline-block; line-height: 1;">' +
+                            selectedText +
+                            '</span>';
+
+                        editor.insertContent(wrapped);
+                    }
+                }
+            });
+        }
+    });
+});
+</script>
+</body>
+</html>
