@@ -1194,7 +1194,7 @@ async function handleApi(request, env, url, ctx) {
         // [新增] Outlook Token 保活接口
         // 【安全修复】增加简单的 key 验证，防止被恶意扫描消耗资源
         // 请记得将你的定时任务 URL 改为：/api/cron/outlook?key=123456
-        if (path === '/api/cron/outlook' && url.searchParams.get('key') === '123456') {
+        if (path === '/api/cron/outlook' && url.searchParams.get('key') === '20260210') {
             // 1. 读取配置 (同时读取管理员和客户的 Outlook 配置)
             const keys = [
                 'outlook_active', 'outlook_client_id', 'outlook_client_secret', 'outlook_refresh_token',
