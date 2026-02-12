@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文章中心 - TB Shop</title>
+    <link href="/assets/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/assets/css/all.min.css" rel="stylesheet">
+    <link href="/themes/TBshop/files/custom-theme.css" rel="stylesheet">
+    
+    <script src="/themes/TBshop/files/common.js" defer></script>
+    <script src="/themes/TBshop/files/articles-page.js" defer></script>
+
+    <style>
+        /* === 移植自 xyrj 主题的文章列表样式 === */
+        
+        :root {
+            --Maincolor: #409EFF;
+            --MaincolorHover: #66b1ff;
+            --text-color-light: #777;
+        }
+
+        .article-list-wrap {
+            background-color: #fff;
+            border: 1px solid #eee; /* 保持原有边框风格 */
+            border-radius: 5px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        }
+
+        .article-item-box {
+            display: flex;
+            margin-bottom: 25px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 25px;
+            text-decoration: none; /* 修复链接下划线 */
+        }
+
+        .article-item-box:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .article-item-image {
+            flex: 0 0 220px;
+            margin-right: 20px;
+            overflow: hidden;
+            position: relative;
+            border-radius: 3px;
+            height: 140px; /* 固定高度 */
+            border: 1px solid #d3d3d369;
+        }
+
+        .article-item-image a {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .article-item-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 3px;
+            transition: transform 0.3s ease;
+        }
+
+        .article-item-image:hover img {
+            transform: scale(1.03);
+        }
+
+        /* 图片上的分类标签 */
+        .image-category {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background: rgba(0, 0, 0, .6);
+            color: #fff;
+            padding: 1px 3px;
+            font-size: 12px;
+            border-radius: 3px;
+            line-height: 1.5;
+            z-index: 2;
+            pointer-events: none; /* 让点击穿透到图片链接 */
+        }
+
+        .article-item-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0; /* 防止 flex 子项溢出 */
+        }
+
+        .article-item-content h3 {
+            word-break: break-all;
+            margin: 0 0 10px;
+            font-size: 17px;
+            font-weight: bold;
+            line-height: 1.4;
+        }
+
+        .article-item-content h3 a {
+            color: #333;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .article-item-content h3 a:hover {
+            color: var(--MaincolorHover);
+        }
+
+        /* 置顶标签 */
+        .label-pinned {
+            background-color: #ff4d4f; /* 使用红色突出置顶 */
+            color: #fff;
+            font-size: 12px;
+            padding: 1px 5px;
+            border-radius: 2px;
+            margin-right: 5px;
+            font-weight: normal;
+            vertical-align: 2px;
+        }
+
+        .article-item-content p {
+            margin: 0 0 10px;
+            color: #666;
+            overflow: hidden;
+            word-break: break-all;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2; /* 限制显示2行 */
+            -webkit-box-orient: vertical;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .article-meta {
+            font-size: 13px;
+            color: #999;
+            display: flex;
+            align-items: center;
+            margin-top: auto; /* 底部对齐 */
+        }
+
+        .article-meta span {
+            margin-right: 15px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .article-meta i {
+            margin-right: 4px;
+        }
+
+        .article-meta .views {
+            margin-left: auto; /* 浏览量靠右 */
+            margin-right: 0;
+        }
+
+        /* === 移动端适配 === */
+        @media (max-width: 768px) {
+            .article-list-wrap {
+                padding: 15px;
+            }
+            
+            .article-item-image {
+                flex: 0 0 120px; /* 缩小图片宽度 */
+                height: 80px;
+                margin-right: 12px;
+            }
+            
+            .article-item-content h3 {
+                font-size: 15px;
+                margin-bottom: 5px;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
+            
+            /* 移动端隐藏摘要，保持简洁 */
+            .article-item-content p {
+                display: none;
+            }
+            
+            .image-category {
+                display: none; /* 移动端隐藏图片上的分类 */
+            }
+            
+            .article-meta {
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="mobile-header d-lg-none" id="global-mobile-header"></header>
+    <div class="mobile-sidebar d-lg-none" id="mobile-sidebar"></div>
+    <div class="mobile-overlay d-lg-none" id="mobile-overlay" onclick="togglePanel('mobile-sidebar', 'mobile-overlay')"></div>
+    <header class="tb-header d-none d-lg-block" id="global-pc-header"></header>
+
+    <div class="container mt-4">
+        <div class="row gx-3" id="main-content-row">
+            <div class="col-lg-9">
+                
+                <div class="module-box mb-3">
+                    <div class="category-bar" id="article-cat-container">
+                        <div class="cat-pill active" onclick="filterArticles('all', this)">全部文章</div>
+                        </div>
+                </div>
+
+                <div class="article-list-wrap" style="min-height: 500px;">
+                    <div class="border-bottom pb-2 mb-3 d-flex justify-content-between align-items-center">
+                        <h6 class="fw-bold mb-0 text-dark"><i class="fa fa-list-ul me-2" style="color: var(--tb-orange);"></i>文章列表</h6>
+                    </div>
+                    
+                    <div id="article-list-container">
+                        <div class="text-center py-5 text-muted">
+                            <i class="fa fa-spinner fa-spin"></i> 加载中...
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="col-lg-3 d-none d-lg-block">
+                <div id="sidebar-wrapper"> 
+                    <div id="global-sidebar-right"></div>
+                </div> 
+            </div>
+        </div>
+    </div>
+
+    <footer class="site-footer" id="global-footer"></footer>
+    <nav class="mobile-bottom-nav d-lg-none" id="global-mobile-nav"></nav>
+
+    <div class="mobile-contact-overlay d-lg-none" id="mobile-contact-overlay"></div>
+    <div class="mobile-contact-sheet d-lg-none" id="mobile-contact-sheet">
+        <div class="mcs-header">
+            <span class="mcs-title">联系客服</span>
+            <i class="fa fa-times mcs-close" id="mobile-contact-close-btn" onclick="togglePanel('mobile-contact-sheet', 'mobile-contact-overlay')"></i>
+        </div>
+        <div class="mcs-content" id="mobile-contact-content"><p>加载中...</p></div>
+    </div>
+
+    <script src="/assets/sticky-sidebar.min.js"></script>
+    <script src="/assets/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof renderCommonLayout === 'function') {
+                renderCommonLayout('articles'); 
+            }
+        });
+    </script>
+</body>
+</html>

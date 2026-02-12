@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文章详情 - TB Shop</title>
+    <link href="/assets/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/assets/css/all.min.css" rel="stylesheet">
+    <link href="/themes/TBshop/files/custom-theme.css" rel="stylesheet">
+
+   <style>
+        /* ================== 文章内容富文本适配 (编辑器风格还原版) ================== */
+        /* 作用于 #article-content 容器内 */
+        
+        #article-content {
+            font-family: PingFang\ SC,Hiragino\ Sans\ GB,Microsoft\ YaHei,STHeiti,WenQuanYi\ Micro\ Hei,-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: #606266;
+            /* 将行高从 1.8 改为 1.6，将字号从 16px 改为 14px，以匹配后台编辑器默认感觉 */
+            line-height: 1.5; 
+            word-wrap: break-word;
+            font-size: 15px; 
+        }
+       /* === 【新增】段落间距控制 === */
+        #article-content p {
+            margin-top: 0;
+            margin-bottom: 0.5rem;
+        }
+        
+        /* 1. 图片自适应 */
+        #article-content img {
+            max-width: 100% !important;
+            height: auto !important;
+            display: block;
+            margin: 1em 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgb(0 0 0 / 15%);
+        }
+
+        /* 2. 列表样式恢复 */
+        #article-content ul, #article-content ol {
+            padding-left: 2em;
+            margin-bottom: 1em;
+        }
+        #article-content ul { list-style-type: disc; }
+        #article-content ol { list-style-type: decimal; }
+        #article-content li { margin-bottom: 0.5em; }
+
+        /* 3. 表格样式适配 */
+        #article-content table {
+            width: 100%;
+            max-width: 100%;
+            margin-bottom: 1rem;
+            border-collapse: collapse;
+            border: 1px solid #dee2e6;
+        }
+        #article-content table td, #article-content table th {
+            padding: 0.75rem;
+            border: 1px solid #dee2e6;
+            vertical-align: top;
+        }
+        #article-content table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+
+        /* 4. 引用块样式 */
+        #article-content blockquote {
+            border-left: 5px solid #0d6efd;
+            padding: 1rem 1.5rem;
+            color: #555;
+            margin: 1.5rem 0;
+            background-color: #f8f9fa;
+            border-radius: 0 4px 4px 0;
+        }
+        
+        /* 5. 标题增强 - 强制按比例重置 H1-H6 大小 */
+        /* 使用 em 单位，使其相对于基础字号(14px)进行缩放，还原编辑器默认比例 */
+        #article-content h1, #article-content h2, #article-content h3, 
+        #article-content h4, #article-content h5, #article-content h6 {
+            margin-top: 1.2em;
+            margin-bottom: 0.6em;
+            font-weight: bold;
+            color: #2c3e50;
+            line-height: 1.4;
+        }
+
+        #article-content h1 { font-size: 2em; }     /* 约 28px */
+        #article-content h2 { font-size: 1.5em; border-bottom: 1px solid #eee; padding-bottom: 10px; } /* 约 21px */
+        #article-content h3 { font-size: 1.3em; }  /* 约 16.5px */
+        #article-content h4 { font-size: 1em; }     /* 约 14px */
+        #article-content h5 { font-size: 0.83em; }  /* 约 11.6px */
+        #article-content h6 { font-size: 0.67em; }  /* 约 9.3px */
+        
+        /* 6. TinyMCE 对齐类支持 */
+        #article-content .alignleft { float: left; margin: 0 15px 15px 0; }
+        #article-content .alignright { float: right; margin: 0 0 15px 15px; }
+        #article-content .aligncenter { display: block; margin-left: auto; margin-right: auto; text-align: center; }
+        
+        /* 7. 超链接样式 */
+        #article-content a {
+            color: #0d6efd;
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.2s;
+        }
+        #article-content a:hover {
+            border-bottom-color: #0d6efd;
+        }
+    </style>
+    
+    <script src="/themes/TBshop/files/common.js" defer></script>
+</head>
+<body>
+
+    <header class="mobile-header d-lg-none" id="global-mobile-header"></header>
+    <div class="mobile-sidebar d-lg-none" id="mobile-sidebar"></div>
+    <div class="mobile-overlay d-lg-none" id="mobile-overlay" onclick="togglePanel('mobile-sidebar', 'mobile-overlay')"></div>
+    <header class="tb-header d-none d-lg-block" id="global-pc-header"></header>
+
+    <div class="container mt-4">
+        <div class="row gx-3" id="main-content-row">
+            <div class="col-lg-9">
+                
+                <div class="module-box p-0 overflow-hidden" style="min-height: 600px;">
+                    <div class="p-4 border-bottom bg-light bg-opacity-10">
+                        
+                        <div class="d-flex align-items-center text-muted mb-3" style="font-size: 13px;">
+                             <i class="fa fa-home me-1" style="position: relative; top: 0px;"></i> 
+                             <a href="/articles" class="text-decoration-none text-muted me-1">文章中心</a> 
+                             <span class="mx-1">/</span> 
+                             <span id="article-path-cat">加载中...</span>
+                        </div>
+
+                        <h4 class="fw-bold mb-3 mt-1 text-center" id="article-title">加载中...</h4>
+                        
+                        <div class="text-center text-muted d-flex justify-content-center align-items-center flex-wrap" style="font-size: 12px;">
+                            <span class="me-3"><i class="fa fa-calendar-alt me-1"></i> <span id="article-time">--</span></span>
+                            <span class="me-3"><i class="fa fa-folder me-1"></i> <span id="article-cat">--</span></span>
+                            <span><i class="fa fa-eye me-1"></i> <span id="article-views">--</span></span>
+                        </div>
+                    </div>
+                    
+                    <div class="p-4 p-md-5">
+                        <div id="article-content">
+                            <div class="text-center py-5"><i class="fa fa-spinner fa-spin"></i></div>
+                        </div>
+                    </div>
+                    
+                    <div class="p-4 border-top text-center">
+                        <a href="/articles" class="btn btn-outline-secondary btn-sm rounded-pill px-4">
+                            <i class="fa fa-angle-left me-1"></i> 返回文章列表
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="col-lg-3 d-none d-lg-block">
+                <div id="sidebar-wrapper"> 
+                    <div id="global-sidebar-right"></div>
+                </div> 
+            </div>
+        </div>
+    </div>
+
+    <footer class="site-footer" id="global-footer"></footer>
+    <nav class="mobile-bottom-nav d-lg-none" id="global-mobile-nav"></nav>
+
+    <div class="mobile-contact-overlay d-lg-none" id="mobile-contact-overlay"></div>
+    <div class="mobile-contact-sheet d-lg-none" id="mobile-contact-sheet">
+        <div class="mcs-header">
+            <span class="mcs-title">联系客服</span>
+            <i class="fa fa-times mcs-close" id="mobile-contact-close-btn" onclick="togglePanel('mobile-contact-sheet', 'mobile-contact-overlay')"></i>
+        </div>
+        <div class="mcs-content" id="mobile-contact-content"><p>加载中...</p></div>
+    </div>
+
+    <script src="/assets/sticky-sidebar.min.js"></script>
+    <script src="/assets/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof renderCommonLayout === 'function') {
+                renderCommonLayout('article');
+            }
+            loadArticle();
+        });
+
+        async function loadArticle() {
+            const id = new URLSearchParams(window.location.search).get('id');
+            if (!id) {
+                document.getElementById('article-title').innerText = '参数错误';
+                return;
+            }
+            try {
+                const res = await fetch(`/api/shop/article/get?id=${id}`);
+                const data = await res.json();
+
+                if (data.error) {
+                     document.getElementById('article-title').innerText = '文章不存在';
+                     document.getElementById('article-content').innerHTML = `<div class="text-center py-5 text-muted">${data.error}</div>`;
+                     return;
+                }
+
+                // 填充左上角分类路径
+                const catName = data.category_name || '默认分类';
+                const pathCatEl = document.getElementById('article-path-cat');
+                if (pathCatEl) {
+                    pathCatEl.innerText = catName;
+                }
+
+                document.title = data.title + ' - TB Shop';
+                document.getElementById('article-title').innerText = data.title;
+                document.getElementById('article-time').innerText = new Date(data.created_at * 1000).toLocaleDateString();
+                document.getElementById('article-cat').innerText = catName;
+                document.getElementById('article-views').innerText = data.view_count;
+                document.getElementById('article-content').innerHTML = data.content; // 注入富文本 HTML
+
+                document.querySelectorAll('#article-content img').forEach(img => {
+                    img.classList.add('img-fluid'); 
+                });
+
+            } catch (e) {
+                document.getElementById('article-title').innerText = '加载失败';
+                console.error(e);
+            }
+        }
+    </script>
+</body>
+</html>

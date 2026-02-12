@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="renderer" content="webkit">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>资讯中心</title>
+    
+    <link href="/assets/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/assets/css/all.min.css" rel="stylesheet">
+    <link href="/files/custom-default-bootstrap.css" rel="stylesheet">
+
+    <style>
+        body { background: #f4f6f9; }
+
+        /* === 移植并优化后的样式 === */
+        
+        /* 1. 图片样式 */
+        .avatar-sm {
+            width: 220px;
+            height: 138px;
+            border-radius: 0.9rem;
+            object-fit: cover;
+            /* 关键修改：移除 float，改用 flex 布局控制位置 */
+            display: block;
+            transition: transform 0.3s ease;
+        }
+        /* 鼠标悬停微效 */
+        .article-item:hover .avatar-sm {
+            transform: scale(1.02);
+        }
+
+        /* 2. 标题样式 */
+        .blog-post-title {
+            font-size: 1.1rem;
+            font-weight: 600; /* 加粗一点更清晰 */
+            text-decoration: none;
+            color: #333;
+            display: block;
+            margin-bottom: 6px;
+            line-height: 1.4;
+            transition: color 0.2s;
+        }
+        .blog-post-title:hover {
+            color: var(--luna-primary-blue);
+        }
+
+        /* 3. 元数据样式 (日期/阅读量) */
+        .blog-post-meta {
+            font-size: 0.8rem;
+            color: #999;
+            margin-bottom: 10px;
+        }
+
+        /* 4. 摘要样式 */
+        .article-summary {
+            font-size: 14px;
+            line-height: 1.7;
+            color: #666;
+            margin-bottom: 0;
+            /* 多行省略号，防止太长 */
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 3; /* 最多显示3行 */
+            overflow: hidden;
+        }
+
+        /* 5. 分类导航样式 */
+        .category-nav-link {
+            padding: 8px 15px;
+            color: #6c757d;
+            font-weight: 500;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: all 0.2s;
+            margin-right: 5px;
+            font-size: 15px;
+        }
+        .category-nav-link:hover {
+            color: #333;
+            background-color: #f8f9fa;
+        }
+        /* 选中状态：加粗 + 深色 */
+        .category-nav-link.active {
+            color: #333;
+            font-weight: bold;
+            background-color: rgba(0,0,0,0.05);
+        }
+
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            .article-item {
+                flex-direction: column; /* 上下排列 */
+            }
+            .avatar-sm {
+                width: 100%;
+                height: 180px;
+                margin-bottom: 15px;
+            }
+            .article-content {
+                padding-left: 0 !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container my-4" style="min-height: 60vh;">
+        
+        <div class="main-box mb-3">
+            <h5 class="mb-0" style="font-weight: 600;">
+                <i class="far fa-newspaper me-2" style="color: var(--luna-primary-blue);"></i>资讯中心
+            </h5>
+        </div>
+
+        <div class="main-box">
+            <div class="card-body p-0">
+                
+                <nav class="nav d-flex flex-wrap align-items-center mb-3" id="article-category-nav">
+                    <a class="category-nav-link active" href="javascript:void(0);" onclick="filterArticles('all', this)">全部</a>
+                    <span class="p-2 text-muted small" id="cat-loading">加载分类...</span>
+                </nav>
+                
+                <hr class="my-4" style="border-top: 1px solid #eee;">
+                
+                <div class="blog-content" id="article-list-container">
+                    <div class="text-center py-5">
+                        <i class="fas fa-spinner fa-spin text-muted fa-2x"></i>
+                        <p class="text-muted mt-2">正在加载文章...</p>
+                    </div>
+                </div>
+
+                <div class="pagination justify-content-center mt-4" id="pagination-container"></div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <script src="/assets/jquery-3.6.0.min.js"></script>
+    <script src="/assets/bootstrap.bundle.min.js"></script>
+    <script src="/files/header.js"></script>
+    <script src="/files/footer.js"></script>
+    <script>
+        // 全局变量存储数据
+        let g_allArticles = [];
+        // 【关键】使用不同于首页的变量名，防止冲突
+        let g_articleCategories = [];
+
+        $(document).ready(function() {
+            loadGlobalConfig();
+            loadArticleCategories();
+            loadArticles();
+        });
+// 新增：加载全局配置并渲染页头页尾
+        function loadGlobalConfig() {
+            $.ajax({
+                url: '/api/shop/config',
+                method: 'GET',
+                success: function(res) {
+                    // 兼容不同的返回格式
+                    let config = (res && res.data) ? res.data : (res || {});
+                    
+                    const siteName = config.site_name || '资讯中心';
+                    const siteLogo = config.site_logo || '';
+                    const showName = config.show_site_name;
+
+                    // 调用 header.js 和 footer.js 提供的函数
+                    if (typeof renderHeader === 'function') renderHeader(siteName, siteLogo, showName);
+                    if (typeof renderFooter === 'function') renderFooter(siteName);
+                },
+                error: function() {
+                    // 即使加载配置失败，也显示默认页头
+                    if (typeof renderHeader === 'function') renderHeader('资讯中心');
+                }
+            });
+        }
+        // 1. 加载分类
+        function loadArticleCategories() {
+            $.ajax({
+                url: '/api/shop/article/categories',
+                method: 'GET',
+                success: function(res) {
+                    $('#cat-loading').remove();
+                    const nav = $('#article-category-nav');
+                    
+                    if (res && Array.isArray(res)) {
+                        g_articleCategories = res;
+                        res.forEach(cat => {
+                            const html = `<a class="category-nav-link" href="javascript:void(0);" onclick="filterArticles(${cat.id}, this)">${cat.name}</a>`;
+                            nav.append(html);
+                        });
+                    }
+                },
+                error: function() {
+                    $('#cat-loading').text('分类加载失败');
+                }
+            });
+        }
+
+        // 2. 加载文章
+        function loadArticles() {
+            $.ajax({
+                url: '/api/shop/articles/list',
+                method: 'GET',
+                success: function(res) {
+                    if (res && Array.isArray(res)) {
+                        g_allArticles = res;
+                        renderArticles(g_allArticles);
+                    } else {
+                        $('#article-list-container').html('<div class="text-center py-5 text-muted">暂无文章数据</div>');
+                    }
+                },
+                error: function() {
+                    $('#article-list-container').html('<div class="text-center py-5 text-danger">加载失败，请刷新重试</div>');
+                }
+            });
+        }
+
+        // 3. 渲染文章列表 (使用 Flex 布局解决错位问题)
+        function renderArticles(articles) {
+            const container = $('#article-list-container');
+            container.empty();
+
+            if (articles.length === 0) {
+                container.html('<div class="text-center py-5 text-muted">该分类下暂无文章</div>');
+                return;
+            }
+
+            articles.forEach(article => {
+                const coverImg = article.cover_image || '/assets/noimage.jpg';
+                const date = new Date(article.created_at * 1000).toLocaleString('zh-CN', { hour12: false }); 
+                const summary = article.snippet || '暂无摘要';
+                const link = `/article?id=${article.id}`;
+
+                // --- 核心 HTML 结构修改 ---
+                // 使用 d-flex (Flexbox) 确保左右分栏，左图右文，永不错位
+                const itemHtml = `
+                    <div class="article-item d-flex mb-4 pb-4 border-bottom" style="animation: fadeIn 0.5s;">
+                        
+                        <div class="flex-shrink-0">
+                            <a href="${link}" class="d-block">
+                                <img src="${coverImg}" class="avatar-sm shadow-sm" alt="${escapeHtml(article.title)}" loading="lazy">
+                            </a>
+                        </div>
+                        
+                        <div class="article-content flex-grow-1 ps-4">
+                            <div class="blog-post-header">
+                                <a class="blog-post-title" href="${link}">
+                                    ${article.is_notice ? '<span class="badge bg-danger me-1" style="font-size:12px;vertical-align:text-bottom;">置顶</span>' : ''}
+                                    ${escapeHtml(article.title)}
+                                </a>
+                                <div class="blog-post-meta">
+                                    <i class="far fa-clock me-1"></i> ${date}
+                                    <span class="mx-2">|</span>
+                                    <i class="far fa-eye me-1"></i> ${article.view_count || 0} 阅读
+                                </div>
+                            </div>
+                            
+                            <p class="article-summary">
+                                ${escapeHtml(summary)}
+                            </p>
+                        </div>
+
+                    </div>
+                `;
+                container.append(itemHtml);
+            });
+            
+            // 移除最后一个元素的边框
+            container.find('.article-item:last').removeClass('border-bottom pb-4');
+        }
+
+        // 4. 分类筛选
+        window.filterArticles = function(catId, btn) {
+            $('.category-nav-link').removeClass('active');
+            $(btn).addClass('active');
+
+            if (catId === 'all') {
+                renderArticles(g_allArticles);
+            } else {
+                const filtered = g_allArticles.filter(item => item.category_id == catId);
+                renderArticles(filtered);
+            }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+        }
+    </script>
+    
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</body>
+</html>
