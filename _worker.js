@@ -263,6 +263,10 @@ export default {
         // ====== [新增] GitHub 图片代理 (支持私有仓库) ======
         if (path.startsWith('/gh_image/')) {
             const filename = path.replace('/gh_image/', '');
+            // 【安全修复】白名单校验：只允许图片格式，防止读取源码或敏感文件
+            if (!/\.(jpg|jpeg|png|gif|webp|ico|svg)$/i.test(filename)) {
+                return new Response('Forbidden', { status: 403 });
+            }
             let conf = {};
             try {
                 const db = env.MY_XYRJ;
@@ -295,8 +299,10 @@ export default {
 // === 辅助函数：注入 Meta 标签 (用于SEO) ===
 // =============================================
 async function injectMetaTags(originalResponse, data) {
-    const title = (data.title || '').replace(/"/g, '&quot;');
-    const desc = (data.desc || '').replace(/"/g, '&quot;');
+// 【安全修复】转义特殊字符，防止 XSS 攻击
+    const escape = (str) => (str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    const title = escape(data.title);
+    const desc = escape(data.desc);
     // 这里决定图片显示模式：
     // 'summary_large_image' = 大图 (适合宽屏图)
     // 'summary'             = 小图 (适合正方形图，图片在文字旁)
@@ -1186,7 +1192,9 @@ async function handleApi(request, env, url, ctx) {
         // --- 定时任务 API (Cron) ---
         // ===========================
         // [新增] Outlook Token 保活接口
-        if (path === '/api/cron/outlook') {
+        // 【安全修复】增加简单的 key 验证，防止被恶意扫描消耗资源
+        // 请记得将你的定时任务 URL 改为：/api/cron/outlook?key=123456
+        if (path === '/api/cron/outlook' && url.searchParams.get('key') === '123456') {
             // 1. 读取配置 (同时读取管理员和客户的 Outlook 配置)
             const keys = [
                 'outlook_active', 'outlook_client_id', 'outlook_client_secret', 'outlook_refresh_token',
