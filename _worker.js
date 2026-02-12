@@ -510,6 +510,12 @@ async function handleApi(request, env, url, ctx) {
                 if (updateStmts.length > 0) {
                     await db.batch(updateStmts);
                 }
+                await db.prepare(`
+                UPDATE variants 
+                SET stock = (SELECT COUNT(*) FROM cards WHERE variant_id = variants.id AND status = 0) 
+                WHERE product_id = ? AND auto_delivery = 1
+                `).bind(productId).run();
+                
                 return jsonRes({ success: true, productId: productId });
             }
             
