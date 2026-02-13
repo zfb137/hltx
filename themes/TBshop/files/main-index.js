@@ -158,8 +158,11 @@ function getProductCardHtml(p) {
     const totalSales = p.variants.reduce((sum, v) => sum + (v.sales_count || 0), 0);
     const totalStock = p.variants.reduce((sum, v) => sum + (v.stock || 0), 0);
     const imgUrl = p.image_url || mainVariant.image_url || '/themes/TBshop/assets/no-image.png'; // 默认图
-    const price = mainVariant.price || '0.00';
-    
+    let price = '0.00';
+    if (p.variants && p.variants.length > 0) {
+        const prices = p.variants.map(v => parseFloat(v.price || 0));
+        price = Math.min(...prices).toFixed(2);
+    }
     // [修改] 使用本地增强版的 renderTagsLocal，确保颜色正确解析
     const tagsHtml = renderTagsLocal(p.tags); 
 
