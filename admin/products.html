@@ -444,7 +444,7 @@
                 <div class="variant-field v-stock-wrap"><label class="form-label-sm">库存</label><input type="number" class="form-control form-control-sm v-stock" value="${v.stock || 0}" ${isAuto ? 'disabled readonly title="自动从卡密库计算"' : ''}></div>
                 <div class="variant-field v-selection_label"><label class="form-label-sm">自选标签</label><input type="text" class="form-control form-control-sm" name="v_selection_label" value="${v.selection_label || ''}" placeholder="自选卡密"></div>
                 <div class="variant-field v-markup-wrap"><label class="form-label-sm">加价</label><input type="number" step="0.01" class="form-control form-control-sm v-custom_markup" value="${v.custom_markup || 0}"></div>
-                <div class="variant-field v-sales-wrap"><label class="form-label-sm">销量</label><input type="text" class="form-control form-control-sm" value="${v.sales_count || 0}" disabled readonly></div>
+                <div class="variant-field v-sales-wrap"><label class="form-label-sm">虚拟销量</label><input type="number" class="form-control form-control-sm v-sales_count" value="${v.sales_count || 0}"></div>
             </div>`;
         vList.appendChild(row);
     }
@@ -525,7 +525,7 @@
                 const nameVal = row.querySelector('input.v-name').value || '默认规格';
                 if (isNaN(price) || price < 0) throw new Error(`规格 "${nameVal}" 售价错误`);
                 data.variants.push({
-                    id: row.querySelector('.v-id').value || null, name: nameVal, price: price, sort: parseInt(row.querySelector('.v-sort').value) || 0, active: row.querySelector('.v-active').checked ? 1 : 0, color: row.querySelector('.v-color').value || null, image_url: row.querySelector('input.v-image_url').value || null, selection_label: row.querySelector('[name="v_selection_label"]').value.trim() || null, custom_markup: parseFloat(row.querySelector('.v-custom_markup').value) || 0, wholesale_config: wholesale_config, auto_delivery: parseInt(row.querySelector('.v-auto_delivery').value), stock: parseInt(row.querySelector('.v-stock').value) || 0
+                    id: row.querySelector('.v-id').value || null, name: nameVal, price: price, sort: parseInt(row.querySelector('.v-sort').value) || 0, active: row.querySelector('.v-active').checked ? 1 : 0, color: row.querySelector('.v-color').value || null, image_url: row.querySelector('input.v-image_url').value || null, selection_label: row.querySelector('[name="v_selection_label"]').value.trim() || null, custom_markup: parseFloat(row.querySelector('.v-custom_markup').value) || 0, wholesale_config: wholesale_config, auto_delivery: parseInt(row.querySelector('.v-auto_delivery').value), stock: parseInt(row.querySelector('.v-stock').value) || 0, sales_count: parseInt(row.querySelector('.v-sales_count').value) || 0
                 });
             });
             if (data.variants.length === 0) throw new Error('至少添加一个规格');
