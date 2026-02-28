@@ -332,14 +332,14 @@
             else if(o.status == -1) statusBadge = '<span class="status-badge status-closed">已关闭</span>';
 
             const createTimeStr = o.created_at ? new Date(o.created_at * 1000).toLocaleString() : '-';
-
+            const safeContact = (o.contact || '-').replace(/</g, "&lt;").replace(/>/g, "&gt;");
             return `
             <tr>
                 <td style="text-align: center;"><input class="form-check-input o-check" type="checkbox" value="${o.id}" onchange="updateBatchBtn()"></td>
                 <td><small>${o.id}</small></td>
                 <td><div class="text-truncate" style="max-width: 150px;" title="${o.product_name}">${o.product_name}</div></td>
                 <td>￥${o.total_amount || o.price}</td>
-                <td>${o.contact || '-'}</td>
+                <td>${safeContact}</td>
                 <td>${statusBadge}</td>
                 <td><small>${createTimeStr}</small></td>
                 <td style="text-align: center;">
