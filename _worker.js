@@ -1295,7 +1295,7 @@ async function handleApi(request, env, url, ctx) {
         if (path === '/api/shop/order/create' && method === 'POST') {
             // 1. 接收 query_password
             const { variant_id, quantity, contact, payment_method, card_id, query_password } = await request.json();
-
+            if (quantity <= 0 || !Number.isInteger(quantity)) return errRes('购买数量必须是大于0的整数', 400);
             // --- 新增限制逻辑 START ---
             // 检查该联系人下的未支付订单数量
             const unpaidCount = (await db.prepare("SELECT COUNT(*) as c FROM orders WHERE contact=? AND status=0").bind(contact).first()).c;
@@ -1397,6 +1397,7 @@ async function handleApi(request, env, url, ctx) {
             const validatedItems = []; // 存储后端验证过的商品信息
 
             for (const item of items) {
+                if (item.quantity <= 0 || !Number.isInteger(item.quantity)) return errRes('商品数量非法', 400);
                 // 假设前端传来的 ID 正确，查库验证
                 // 注意：前端 cart-page.js 已修复为传 variantId
                 const variant = await db.prepare("SELECT * FROM variants WHERE id=?").bind(item.variantId).first();
@@ -1710,20 +1711,16 @@ async function handleApi(request, env, url, ctx) {
                                     const placeholder = JSON.parse(order.cards_sent);
                                     if (placeholder && placeholder.target_id) targetCardId = placeholder.target_id;
                                 } catch(e) {}
-
                                 let cards;
                                 if (targetCardId) {
-                                    cards = await db.prepare("SELECT id, content FROM cards WHERE id=? AND status=0").bind(targetCardId).all();
+                                    cards = await db.prepare("UPDATE cards SET status=1, order_id=? WHERE id=? AND status=0 RETURNING id, content").bind(out_trade_no, targetCardId).all();
                                 } else {
-                                    cards = await db.prepare("SELECT id, content FROM cards WHERE variant_id=? AND status=0 LIMIT ?")
-                                        .bind(order.variant_id, order.quantity).all();
+                                    cards = await db.prepare("UPDATE cards SET status=1, order_id=? WHERE id IN (SELECT id FROM cards WHERE variant_id=? AND status=0 LIMIT ?) RETURNING id, content").bind(out_trade_no, order.variant_id, order.quantity).all();
                                 }
-                                
+                            
                                 if (cards.results.length >= order.quantity) {
-                                    const cardIds = cards.results.map(c => c.id);
                                     allCardsContent.push(...cards.results.map(c => c.content));
                                     
-                                    stmts.push(db.prepare(`UPDATE cards SET status=1, order_id=? WHERE id IN (${cardIds.join(',')})`).bind(out_trade_no));
                                     stmts.push(db.prepare("UPDATE variants SET sales_count = sales_count + ? WHERE id=?").bind(order.quantity, order.variant_id));
                                     autoVariantIdsToUpdate.add(order.variant_id);
                                     
