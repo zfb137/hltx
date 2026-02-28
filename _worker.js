@@ -1656,17 +1656,15 @@ async function handleApi(request, env, url, ctx) {
                                     // 自动发货
                                     let cards;
                                     if (item.buyMode === 'select' && item.selectedCardId) {
-                                        cards = await db.prepare("SELECT id, content FROM cards WHERE id=? AND status=0").bind(item.selectedCardId).all();
+                                        cards = await db.prepare("UPDATE cards SET status=1, order_id=? WHERE id=? AND status=0 RETURNING id, content").bind(out_trade_no, item.selectedCardId).all();
                                     } else {
-                                        cards = await db.prepare("SELECT id, content FROM cards WHERE variant_id=? AND status=0 LIMIT ?").bind(item.variantId, item.quantity).all();
+                                        cards = await db.prepare("UPDATE cards SET status=1, order_id=? WHERE id IN (SELECT id FROM cards WHERE variant_id=? AND status=0 LIMIT ?) RETURNING id, content").bind(out_trade_no, item.variantId, item.quantity).all();
                                     }
                                     
                                     if (cards.results.length >= item.quantity) {
-                                        const cardIds = cards.results.map(c => c.id);
                                         itemCardsContent = cards.results.map(c => c.content);
                                         allCardsContent.push(...itemCardsContent);
                                         
-                                        stmts.push(db.prepare(`UPDATE cards SET status=1, order_id=? WHERE id IN (${cardIds.join(',')})`).bind(out_trade_no));
                                         stmts.push(db.prepare("UPDATE variants SET sales_count = sales_count + ? WHERE id=?").bind(item.quantity, item.variantId));
                                         autoVariantIdsToUpdate.add(item.variantId);
 
