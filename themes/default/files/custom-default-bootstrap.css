@@ -192,7 +192,7 @@ body {
 /* [新增] 红色缺货角标 */
 .sku-oos-badge {
     position: absolute;
-    top: -8px;
+    top: -9px;
     right: -5px;
     background-color: #dc3545;
     color: #fff;
