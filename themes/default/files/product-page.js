@@ -63,7 +63,16 @@ function loadProductDetail() {
                 window.location.href = '/';
                 return;
             }
-            
+            // 缺货规格自动移动到所有规格的最后面
+            if (res.variants && Array.isArray(res.variants)) {
+                res.variants.sort((a, b) => {
+                    const stockA = parseInt(a.stock) || 0;
+                    const stockB = parseInt(b.stock) || 0;
+                    if (stockA <= 0 && stockB > 0) return 1;
+                    if (stockA > 0 && stockB <= 0) return -1;
+                    return 0;
+                });
+            }
             currentProduct = res;
             renderProductPage(res);
         },
