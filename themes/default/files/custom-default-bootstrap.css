@@ -211,7 +211,12 @@ body {
    ========================================= */
 
 /* 购买方式按钮 */
-.method-btn { font-size: 14px; }
+/* 修改购买方式按钮的字体属性 */
+.method-btn {
+    font-family: "Arial Narrow", Arial, sans-serif !important;
+    font-size: 15px !important;
+    font-weight: bold !important;
+}
 .method-btn.active-method {
     background-color: var(--luna-primary-blue);
     color: #fff;
