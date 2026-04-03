@@ -468,13 +468,13 @@ async function handleApi(request, env, url, ctx) {
                 const newVariantIds = [];
                 const updateStmts = [];
                 
-                // 增加 selection_label 字段
+                // 增加 selection_label 和 random_mode_text 字段
                 const insertStmt = db.prepare(`
-                    INSERT INTO variants (product_id, name, price, stock, color, image_url, wholesale_config, custom_markup, auto_delivery, sales_count, created_at, selection_label, sort, active) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO variants (product_id, name, price, stock, color, image_url, wholesale_config, custom_markup, auto_delivery, sales_count, created_at, random_mode_text, selection_label, sort, active) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 `);
                 const updateStmt = db.prepare(`
-                    UPDATE variants SET name=?, price=?, stock=?, color=?, image_url=?, wholesale_config=?, custom_markup=?, auto_delivery=?, sales_count=?, selection_label=?, sort=?, active=?
+                    UPDATE variants SET name=?, price=?, stock=?, color=?, image_url=?, wholesale_config=?, custom_markup=?, auto_delivery=?, sales_count=?, random_mode_text=?, selection_label=?, sort=?, active=?
                     WHERE id=? AND product_id=?
                 `);
 
@@ -490,7 +490,7 @@ async function handleApi(request, env, url, ctx) {
                             updateStmt.bind(
                                 v.name, v.price, stock, v.color, v.image_url, wholesale_config_json, 
                                 v.custom_markup || 0, auto_delivery, v.sales_count || 0,
-                                v.selection_label || null,
+                                v.random_mode_text || null, v.selection_label || null,
                                 v.sort || 0, v.active,
                                 variantId, productId
                             )
@@ -500,7 +500,7 @@ async function handleApi(request, env, url, ctx) {
                             insertStmt.bind(
                                 productId, v.name, v.price, stock, v.color, v.image_url, wholesale_config_json,
                                 v.custom_markup || 0, auto_delivery, v.sales_count || 0, now,
-                                v.selection_label || null,
+                                v.random_mode_text || null, v.selection_label || null,
                                 v.sort || 0, v.active
                             )
                         );
@@ -1648,7 +1648,7 @@ async function handleApi(request, env, url, ctx) {
                             
                             for (const item of cartItems) {
                                 let itemCardsContent = [];
-                                const variant = await db.prepare("SELECT auto_delivery, stock FROM variants WHERE id=?").bind(item.variantId).first();
+                                const variant = await db.prepare("SELECT auto_delivery, stock, random_mode_text FROM variants WHERE id=?").bind(item.variantId).first();
                                 
                                 if (!variant) continue; // Skip if variant no longer exists
 
@@ -1669,7 +1669,7 @@ async function handleApi(request, env, url, ctx) {
                                         autoVariantIdsToUpdate.add(item.variantId);
 
                                         // Admin 通知内容补充
-                                        let itemNote = ' (随机)';
+                                        let itemNote = ` (${variant.random_mode_text || '随机'})`;
                                         if (item.buyMode === 'select' && item.selectedCardId) {
                                             const card = await db.prepare("SELECT content FROM cards WHERE id=?").bind(item.selectedCardId).first();
                                             const match = card?.content.match(/#\[(.*?)\]/);
@@ -1697,10 +1697,10 @@ async function handleApi(request, env, url, ctx) {
                             }
                         } else {
                             // === 情况B：单个商品直接下单 ===
-                            singleVariant = await db.prepare("SELECT auto_delivery, name, price, stock FROM variants WHERE id=?").bind(order.variant_id).first();
+                            singleVariant = await db.prepare("SELECT auto_delivery, name, price, stock, random_mode_text FROM variants WHERE id=?").bind(order.variant_id).first();
                             if (!singleVariant) throw new Error("Variant not found for single order fulfillment.");
                             
-                            let modeLine = '类型：默认随机';
+                            let modeLine = `类型：${singleVariant.random_mode_text || '默认随机'}`;
                             
                             if (singleVariant.auto_delivery === 1) {
                                 // 自动发货
