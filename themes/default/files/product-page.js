@@ -14,7 +14,6 @@ let selectedSpecificCardInfo = '';
 $(document).ready(function() {
     loadProductDetail();
 
-    // 加载全局配置并渲染页头页尾
     $.ajax({
         url: '/api/shop/config',
         method: 'GET',
