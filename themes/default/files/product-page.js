@@ -452,7 +452,8 @@ function updateBuyMethodButtons() {
 
     let html = '';
     const randomClass = buyMethod === 'random' ? 'active-method' : '';
-    html += `<button class="btn btn-outline-secondary btn-sm me-2 mb-1 method-btn ${randomClass}" onclick="selectBuyMethod('random', this)">默认随机</button>`;
+    let randomLabel = currentVariant.random_mode_text || '默认随机';
+    html += `<button class="btn btn-outline-secondary btn-sm me-2 mb-1 method-btn ${randomClass}" onclick="selectBuyMethod('random', this)">${randomLabel}</button>`;
 
     if (showSelect) {
         const selectClass = buyMethod === 'select' ? 'active-method' : '';
@@ -549,7 +550,8 @@ function updateDynamicInfoDisplay() {
         if (promoText) {
             leftHtml = `<span style="${activeStyle}"><i class="fas fa-tags me-1"></i>批发优惠: ${promoText}</span>`;
         } else {
-            leftHtml = `<span style="${activeStyle}"><i class="fas fa-check-circle me-1"></i>默认随机</span>`;
+            let randomLabel = currentVariant.random_mode_text || '默认随机';
+            leftHtml = `<span style="${activeStyle}"><i class="fas fa-check-circle me-1"></i>${randomLabel}</span>`;
         }
     } else if (buyMethod === 'select') {
         const markup = parseFloat(currentVariant.custom_markup || 0).toFixed(2);
