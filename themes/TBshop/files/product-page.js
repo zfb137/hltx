@@ -481,12 +481,12 @@ function updateDynamicInfoDisplay() {
             leftHtml = `<span style="${redStyle}"><i class="fa fa-tag me-1"></i>批发优惠: ${promoText}</span>`;
         } else {
             let randomLabel = currentVariant.random_mode_text || '默认随机';
-            leftHtml = `<span style="${redStyle}"><i class="fa fa-check-circle me-1"></i> ${randomLabel}</span>`;
+            leftHtml = `<span style="${redStyle}"> ${randomLabel}</span>`;
         }
     } else if (buyMethod === 'select') {
         const markup = parseFloat(currentVariant.custom_markup || 0).toFixed(2);
         let label = currentVariant.selection_label || '自选卡密/号码';
-        leftHtml = `<span style="${redStyle}"><i class="fa fa-check-circle me-1"></i>${label} (加价 ${markup}元)</span>`;
+        leftHtml = `<span style="${redStyle}">${label} (加价 ${markup}元)</span>`;
     }
 
     let rightInfo = specName;
@@ -494,7 +494,7 @@ function updateDynamicInfoDisplay() {
         rightInfo += ` + ${selectedSpecificCardInfo}`;
     }
 
-    const rightHtml = `<span style="color:#666; font-size:12px; margin-right:12px;">已选: ${rightInfo}</span>`;
+    const rightHtml = `<span style="color:#666; font-size:12px; margin-right:12px;"><i class="fa fa-check-circle me-1"></i>已选: ${rightInfo}</span>`;
         displayDiv.innerHTML = rightHtml + leftHtml;
 }
 
